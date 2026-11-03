@@ -166,6 +166,26 @@ lpadmin -d "$PRINTER_NAME"
 cupsenable "$PRINTER_NAME"
 cupsaccept "$PRINTER_NAME"
 
+# Keep the same printer identity (UUID) across restarts and updates, so
+# phones see the same printer instead of adding a duplicate each time.
+UUID_FILE=/data/printer-uuid
+# CUPS writes printers.conf a moment after changes; wait for it.
+for _ in $(seq 1 20); do grep -q '^UUID ' /etc/cups/printers.conf 2>/dev/null && break; sleep 0.5; done
+if [ -s "$UUID_FILE" ]; then
+  SAVED_UUID="$(cat "$UUID_FILE")"
+  if ! grep -q "^UUID ${SAVED_UUID}\$" /etc/cups/printers.conf; then
+    pkill -x cupsd
+    for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
+    sed -i "s|^UUID .*|UUID ${SAVED_UUID}|" /etc/cups/printers.conf
+    /usr/sbin/cupsd
+    sleep 3
+  fi
+  log "Printer identity: ${SAVED_UUID}"
+else
+  grep -m1 '^UUID ' /etc/cups/printers.conf | awk '{print $2}' > "$UUID_FILE"
+  log "Saved printer identity: $(cat "$UUID_FILE")"
+fi
+
 log "Ready. '$PRINTER_DESC' is shared as an AirPrint printer."
 log "CUPS web page: http://<home-assistant-ip>:631"
 
