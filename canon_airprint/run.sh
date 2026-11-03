@@ -110,13 +110,16 @@ sleep 3
 tail -n0 -F /var/log/cups/error_log 2>/dev/null | sed -u 's/^/[cups] /' &
 
 # ---------- 4. Create the printer queue ----------
-PPD="$(lpinfo -m 2>/dev/null | grep -i 'LBP6030' | head -n1 | cut -d' ' -f1)"
+DRIVER_MATCH="$(opt driver_match)"
+DRIVER_MATCH="${DRIVER_MATCH:-LBP6030}"
+log "Looking for printer model matching: $DRIVER_MATCH"
+PPD="$(lpinfo -m 2>/dev/null | grep -iF "$DRIVER_MATCH" | head -n1 | cut -d' ' -f1)"
 if [ -z "$PPD" ]; then
   PPD="$(lpinfo -m 2>/dev/null | grep -i 'UFRII LT' | head -n1 | cut -d' ' -f1)"
 fi
 if [ -z "$PPD" ]; then
-  log "Driver installed but no LBP6030 model found. Models offered:"
-  lpinfo -m | grep -i canon | head -n 20
+  log "Driver installed but no model matching '$DRIVER_MATCH'. Models in this driver:"
+  lpinfo -m 2>/dev/null | grep -v -i -E '^(drv:|everywhere|lsb/)' | head -n 60 | sed 's/^/[canon-airprint]   /'
   sleep infinity
 fi
 log "Using driver model: $PPD"
@@ -197,7 +200,14 @@ log "CUPS web page: http://<home-assistant-ip>:631"
     | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-400
 ) &
 
-# ---------- 5. Stay running; restart if CUPS dies ----------
+# ---------- 5. Printer status sensors for Home Assistant ----------
+if [ "$(opt status_sensors)" != "false" ]; then
+  SENSOR_SLUG="$(echo "$PRINTER_NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '_')"
+  log "Publishing printer status to Home Assistant as sensor.${SENSOR_SLUG}_*"
+  /status.sh "$PRINTER_IP" "$PRINTER_DESC" "$SENSOR_SLUG" 60 &
+fi
+
+# ---------- 6. Stay running; restart if CUPS dies ----------
 while pgrep -x cupsd >/dev/null; do sleep 30; done
 log "CUPS stopped; exiting so Home Assistant restarts the add-on."
 exit 1

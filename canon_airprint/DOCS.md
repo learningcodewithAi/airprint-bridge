@@ -28,9 +28,30 @@ download it again.
 | `printer_name` | Internal queue name. Letters, numbers, `_` and `-` only. |
 | `printer_description` | The name phones show in the printer list. |
 | `printer_location` | Optional location shown under the name. |
-| `driver_url` | Canon's download link for the UFRII LT Linux driver. |
+| `driver_url` | Canon's download link for the Linux driver (UFRII LT or UFR II). |
+| `driver_match` | Text that identifies your model in the driver, e.g. `LBP6030`, `MF445`. If nothing matches, the log lists every model the driver contains. |
+| `status_sensors` | Publish printer status, alert, toner % and page count to Home Assistant (default on). |
 | `paper_sizes` | Paper sizes offered to phones, first one is the default (default `Letter,Legal`). Keeps iPhones from picking e.g. A5 for photos. |
 | `debug_logging` | Detailed CUPS job logs in the Log tab, for troubleshooting. |
+
+## Sensors
+
+With `status_sensors` on, the add-on reads the printer's status over the
+network every minute (standard Printer MIB via SNMP) and creates:
+
+- `sensor.<printer_name>_status`: idle, printing, warming up, offline
+- `sensor.<printer_name>_alert`: OK, or e.g. "No paper", "Paper jam", "Toner low"
+- `sensor.<printer_name>_toner`: toner level in %
+- `sensor.<printer_name>_pages`: total pages printed
+
+Use them in automations, e.g. a phone alert when the alert sensor isn't OK.
+
+## Other Canon models
+
+Download Canon's Linux driver for your model (UFRII LT or UFR II), paste its
+link into `driver_url`, set `driver_match` to your model number, and set
+`printer_ip`. Other brands need their own Linux drivers and aren't
+supported yet; many newer printers support AirPrint without this add-on.
 
 ## Troubleshooting
 
