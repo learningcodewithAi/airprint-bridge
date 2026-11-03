@@ -160,7 +160,9 @@ cupsaccept "$PRINTER_NAME"
 mkdir -p /run/canon-airprint /data/ippeve-spool
 echo "$PRINTER_NAME" > /run/canon-airprint/queue
 echo "${PAPER_SIZES%%,*}" > /run/canon-airprint/default_size
-/make_attrs.sh "$PAPER_SIZES" > /run/canon-airprint/attrs.conf || {
+MAKE="$(opt printer_make)"; MAKE="${MAKE:-Canon}"
+MODEL="$(opt printer_model)"; MODEL="${MODEL:-$PRINTER_DESC}"
+/make_attrs.sh "$PAPER_SIZES" "$MAKE $MODEL" > /run/canon-airprint/attrs.conf || {
   log "Could not build the paper list for '$PAPER_SIZES'."; sleep infinity; }
 
 IPPEVE="$(command -v ippeveprinter || ls /usr/sbin/ippeveprinter /usr/bin/ippeveprinter 2>/dev/null | head -n1)"
@@ -170,17 +172,13 @@ if [ -z "$IPPEVE" ]; then
 fi
 
 AIRPRINT_PORT="$(opt airprint_port)"; AIRPRINT_PORT="${AIRPRINT_PORT:-8631}"
-MAKE="$(opt printer_make)"; MAKE="${MAKE:-Canon}"
-MODEL="$(opt printer_model)"; MODEL="${MODEL:-$PRINTER_DESC}"
+[ "$(opt debug_logging)" = "true" ] && VERBOSE=(-vv) || VERBOSE=()
 
 start_airprint() {
-  "$IPPEVE" \
+  "$IPPEVE" "${VERBOSE[@]}" \
     -p "$AIRPRINT_PORT" \
     -n canon-airprint.local \
-    -M "$MAKE" -m "$MODEL" \
     -l "$PRINTER_LOC" \
-    -s 18,0 \
-    -f application/pdf,image/jpeg,image/png,image/pwg-raster,image/urf \
     -a /run/canon-airprint/attrs.conf \
     -c /print_job.sh \
     -d /data/ippeve-spool \
