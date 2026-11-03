@@ -58,13 +58,34 @@ fi
 log "Installing: ${DEBS[*]##*/}"
 dpkg -i --force-depends "${DEBS[@]}" >/dev/null 2>&1 || log "dpkg reported warnings (usually fine)."
 
+# Canon's installer starts its own CUPS; stop it so ours starts cleanly.
+pkill -x cupsd 2>/dev/null || true
+sleep 2
+
 # ---------- 3. Start D-Bus, Avahi and CUPS ----------
-mkdir -p /run/dbus /run/cups /var/spool/cups /var/cache/cups
-rm -f /run/dbus/pid
+mkdir -p /run/dbus /run/cups /var/spool/cups /var/cache/cups /var/log/cups
+rm -f /run/dbus/pid /run/avahi-daemon/pid
+
+# Announce only on the home network, not Home Assistant's internal
+# Docker networks, or iPhones may try an address they can't reach.
+LAN_IF="$(ip -4 route show default 2>/dev/null | awk '{print $5; exit}')"
+if [ -n "$LAN_IF" ]; then
+  sed -i '/^allow-interfaces=/d' /etc/avahi/avahi-daemon.conf
+  sed -i "/^\[server\]/a allow-interfaces=${LAN_IF}" /etc/avahi/avahi-daemon.conf
+  log "Announcing AirPrint on network interface: $LAN_IF ($(ip -4 -o addr show "$LAN_IF" | awk '{print $4}'))"
+else
+  log "Could not find the home network interface; announcing on all."
+fi
+
 dbus-daemon --system --fork
+sleep 1
 avahi-daemon --daemonize --no-chroot || log "Avahi failed to start; AirPrint discovery won't work."
+sleep 1
+: > /var/log/cups/error_log
 /usr/sbin/cupsd
 sleep 3
+# Copy CUPS's own log into the add-on log.
+tail -n0 -F /var/log/cups/error_log 2>/dev/null | sed -u 's/^/[cups] /' &
 
 # ---------- 4. Create the printer queue ----------
 PPD="$(lpinfo -m 2>/dev/null | grep -i 'LBP6030' | head -n1 | cut -d' ' -f1)"
@@ -85,6 +106,8 @@ lpadmin -p "$PRINTER_NAME" \
   -D "$PRINTER_DESC" \
   -L "$PRINTER_LOC" \
   -o printer-is-shared=true \
+  -o media=na_letter_8.5x11in \
+  -o PageSize=Letter \
   -E
 lpadmin -d "$PRINTER_NAME"
 cupsenable "$PRINTER_NAME"

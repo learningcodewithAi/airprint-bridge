@@ -12,7 +12,7 @@ RUN apt-get update \
         avahi-daemon libnss-mdns dbus \
         ghostscript poppler-utils \
         libxml2 libjbig0 libglib2.0-0 libgtk2.0-0 libcups2 libcupsimage2 \
-        curl ca-certificates jq tar gzip \
+        curl ca-certificates jq tar gzip procps iproute2 gawk \
     && rm -rf /var/lib/apt/lists/*
 
 COPY cupsd.conf /etc/cups/cupsd.conf
