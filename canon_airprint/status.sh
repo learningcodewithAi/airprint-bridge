@@ -9,15 +9,27 @@ SLUG="${3:-canon_printer}"
 INTERVAL="${4:-60}"
 API="http://supervisor/core/api/states"
 
+# The Supervisor token is in the environment, or in s6's saved copy of it.
+TOKEN="${SUPERVISOR_TOKEN:-}"
+if [ -z "$TOKEN" ] && [ -r /run/s6/container_environment/SUPERVISOR_TOKEN ]; then
+  TOKEN="$(cat /run/s6/container_environment/SUPERVISOR_TOKEN)"
+fi
+if [ -z "$TOKEN" ]; then
+  echo "[canon-airprint] No Home Assistant API token available; status sensors disabled."
+  exit 0
+fi
+
 snmp() { snmpget -v1 -c public -t 2 -r 1 -Oqv "$IP" "$1" 2>/dev/null | tr -d '"'; }
 snmphex() { snmpget -v1 -c public -t 2 -r 1 -Oqvx "$IP" "$1" 2>/dev/null | tr -d '"' | tr -s ' '; }
 
 post() { # entity_id, state, attributes-json
-  curl -s -o /dev/null -X POST \
-    -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" \
     -d "{\"state\": \"$2\", \"attributes\": $3}" \
-    "${API}/$1"
+    "${API}/$1")"
+  case "$code" in 200|201) ;; *) echo "[canon-airprint] Could not update $1 (HTTP $code)" ;; esac
 }
 
 LAST=""
