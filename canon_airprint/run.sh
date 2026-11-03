@@ -150,6 +150,7 @@ if [ -f "$PPD_FILE" ]; then
 fi
 
 # Tell phones which paper is loaded (they show this list, not the full one).
+# lpadmin can't set media-ready on a PPD queue; cupsd.conf does it below.
 READY=""
 for s in ${PAPER_SIZES//,/ }; do
   case "$s" in
@@ -161,8 +162,25 @@ for s in ${PAPER_SIZES//,/ }; do
 done
 READY="${READY%,}"
 if [ -n "$READY" ]; then
-  lpadmin -p "$PRINTER_NAME" -o "media-ready=${READY}" -o "media-default=${READY%%,*}" \
-    || log "Could not set loaded paper list."
+  # Don't let an unknown directive on an older CUPS stop it from starting.
+  sed -i '/^FatalErrors /d' /etc/cups/cups-files.conf && echo "FatalErrors none" >> /etc/cups/cups-files.conf
+  sed -i '/^DefaultPaperSize /d; /^ReadyPaperSizes /d; /^DefaultLanguage /d' /etc/cups/cupsd.conf
+  {
+    echo "DefaultPaperSize ${PAPER_SIZES%%,*}"
+    echo "DefaultLanguage en"
+    echo "ReadyPaperSizes ${READY}"
+  } >> /etc/cups/cupsd.conf
+  case "${PAPER_SIZES%%,*}" in
+    Letter) echo letter > /etc/papersize ;; Legal) echo legal > /etc/papersize ;;
+    A4) echo a4 > /etc/papersize ;; A5) echo a5 > /etc/papersize ;;
+  esac
+  # Restart CUPS with an empty cache so it rebuilds the paper lists.
+  pkill -x cupsd
+  for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
+  rm -rf /var/cache/cups/*
+  /usr/sbin/cupsd
+  sleep 3
+  log "Loaded paper announced to phones: ${READY}"
 fi
 
 lpadmin -d "$PRINTER_NAME"
@@ -198,12 +216,13 @@ log "CUPS web page: http://<home-assistant-ip>:631"
   mkdir -p /share/canon
   ipptool -tv "ipp://localhost/printers/${PRINTER_NAME}" get-printer-attributes.test \
     > /share/canon/ipp-attributes.txt 2>&1
-  grep -E 'media|source|pwg|urf|PageSize|page-size|printer-input-tray' /share/canon/ipp-attributes.txt \
-    | grep -v -E '^\s*(document-format|operations)' \
+  grep -E '^\s+media-(ready|default|supported|col-ready|source-supported) ' /share/canon/ipp-attributes.txt \
     | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-700
   # The network announcement iPhones see first (TXT record).
-  avahi-browse -rtp _ipp._tcp 2>/dev/null | grep '^=' | head -n 3 \
-    | sed 's/^/[canon-airprint] announced: /' | cut -c1-900
+  # Other computers sharing the same printer can confuse phones; list them.
+  avahi-browse -rtp _ipp._tcp 2>/dev/null | grep '^=' | grep -v 'canon-airprint.local' \
+    | awk -F';' '{print $4 " (" $8 ")"}' | sed 's/\\032/ /g; s/\\064/@/g; s/\\\././g' | sort -u \
+    | sed 's/^/[canon-airprint] Also shared on the network: /'
 ) &
 
 # ---------- 5. Printer status sensors for Home Assistant ----------
