@@ -169,22 +169,22 @@ cupsaccept "$PRINTER_NAME"
 # Keep the same printer identity (UUID) across restarts and updates, so
 # phones see the same printer instead of adding a duplicate each time.
 UUID_FILE=/data/printer-uuid
-# CUPS writes printers.conf a moment after changes; wait for it.
-for _ in $(seq 1 20); do grep -q '^UUID ' /etc/cups/printers.conf 2>/dev/null && break; sleep 0.5; done
-if [ -s "$UUID_FILE" ]; then
-  SAVED_UUID="$(cat "$UUID_FILE")"
-  if ! grep -q "^UUID ${SAVED_UUID}\$" /etc/cups/printers.conf; then
-    pkill -x cupsd
-    for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
-    sed -i "s|^UUID .*|UUID ${SAVED_UUID}|" /etc/cups/printers.conf
-    /usr/sbin/cupsd
-    sleep 3
-  fi
+SAVED_UUID="$(grep -o 'urn:uuid:[0-9a-f-]*' "$UUID_FILE" 2>/dev/null | head -n1)"
+# Stop CUPS so it writes printers.conf to disk, then edit/read it safely.
+pkill -x cupsd
+for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
+CURRENT_UUID="$(grep -o 'urn:uuid:[0-9a-f-]*' /etc/cups/printers.conf | head -n1)"
+if [ -n "$SAVED_UUID" ]; then
+  sed -i "s|^UUID .*|UUID ${SAVED_UUID}|" /etc/cups/printers.conf
   log "Printer identity: ${SAVED_UUID}"
+elif [ -n "$CURRENT_UUID" ]; then
+  echo "$CURRENT_UUID" > "$UUID_FILE"
+  log "Saved printer identity: ${CURRENT_UUID}"
 else
-  grep -m1 '^UUID ' /etc/cups/printers.conf | awk '{print $2}' > "$UUID_FILE"
-  log "Saved printer identity: $(cat "$UUID_FILE")"
+  log "Could not read the printer identity; phones may see a new printer after updates."
 fi
+/usr/sbin/cupsd
+sleep 3
 
 log "Ready. '$PRINTER_DESC' is shared as an AirPrint printer."
 log "CUPS web page: http://<home-assistant-ip>:631"
