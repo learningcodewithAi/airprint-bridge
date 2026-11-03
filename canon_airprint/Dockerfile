@@ -20,6 +20,8 @@ COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 COPY trim_ppd.awk /trim_ppd.awk
 COPY run.sh /run.sh
 COPY status.sh /status.sh
-RUN chmod a+x /run.sh /status.sh
+COPY print_job.sh /print_job.sh
+COPY make_attrs.sh /make_attrs.sh
+RUN chmod a+x /run.sh /status.sh /print_job.sh /make_attrs.sh
 
 CMD [ "/run.sh" ]

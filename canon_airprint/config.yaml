@@ -1,7 +1,7 @@
 name: Canon AirPrint
-version: "0.2.3"
+version: "0.3.0"
 slug: canon_airprint
-description: Shares a Canon UFRII LT printer (like the LBP6030w) as an AirPrint printer for iPhones and Macs, with status sensors.
+description: Shares a Canon UFRII LT / UFR II printer as a real AirPrint printer for iPhones, iPads and Macs, with status sensors.
 url: https://github.com/learningcodewithAi/ha-airprint
 arch:
   - amd64
@@ -13,8 +13,10 @@ host_dbus: false
 homeassistant_api: true
 ports:
   631/tcp: 631
+  8631/tcp: 8631
 ports_description:
-  631/tcp: CUPS web interface and IPP printing
+  631/tcp: CUPS engine web interface (admin)
+  8631/tcp: AirPrint printer (what phones connect to) and its status page
 map:
   - share:rw
 options:
@@ -22,9 +24,12 @@ options:
   printer_name: "Canon_LBP6030w"
   printer_description: "Canon LBP6030w"
   printer_location: "Home"
+  printer_make: "Canon"
+  printer_model: "imageCLASS LBP6030w"
   driver_url: ""
   driver_match: "LBP6030"
   paper_sizes: "Letter,Legal"
+  airprint_port: 8631
   status_sensors: true
   debug_logging: false
 schema:
@@ -32,8 +37,11 @@ schema:
   printer_name: match(^[A-Za-z0-9_-]+$)
   printer_description: str
   printer_location: str
+  printer_make: str?
+  printer_model: str?
   driver_url: str?
   driver_match: str?
   paper_sizes: str?
+  airprint_port: port?
   status_sensors: bool?
   debug_logging: bool?

@@ -149,90 +149,83 @@ if [ -f "$PPD_FILE" ]; then
   fi
 fi
 
-# Tell phones which paper is loaded (they show this list, not the full one).
-# lpadmin can't set media-ready on a PPD queue; cupsd.conf does it below.
-READY=""
-for s in ${PAPER_SIZES//,/ }; do
-  case "$s" in
-    Letter) READY="${READY}na_letter_8.5x11in," ;;
-    Legal)  READY="${READY}na_legal_8.5x14in," ;;
-    A4)     READY="${READY}iso_a4_210x297mm," ;;
-    A5)     READY="${READY}iso_a5_148x210mm," ;;
-  esac
-done
-READY="${READY%,}"
-if [ -n "$READY" ]; then
-  # Don't let an unknown directive on an older CUPS stop it from starting.
-  sed -i '/^FatalErrors /d' /etc/cups/cups-files.conf && echo "FatalErrors none" >> /etc/cups/cups-files.conf
-  sed -i '/^DefaultPaperSize /d; /^ReadyPaperSizes /d; /^DefaultLanguage /d' /etc/cups/cupsd.conf
-  {
-    echo "DefaultPaperSize ${PAPER_SIZES%%,*}"
-    echo "DefaultLanguage en"
-    echo "ReadyPaperSizes ${READY}"
-  } >> /etc/cups/cupsd.conf
-  case "${PAPER_SIZES%%,*}" in
-    Letter) echo letter > /etc/papersize ;; Legal) echo legal > /etc/papersize ;;
-    A4) echo a4 > /etc/papersize ;; A5) echo a5 > /etc/papersize ;;
-  esac
-  # Restart CUPS with an empty cache so it rebuilds the paper lists.
-  pkill -x cupsd
-  for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
-  rm -rf /var/cache/cups/*
-  /usr/sbin/cupsd
-  sleep 3
-  log "Loaded paper announced to phones: ${READY}"
-fi
-
+# The CUPS queue is now only the "engine" (Canon driver -> printer). It is not
+# shared on the network; the AirPrint front end below is what phones see.
+lpadmin -p "$PRINTER_NAME" -o printer-is-shared=false
 lpadmin -d "$PRINTER_NAME"
 cupsenable "$PRINTER_NAME"
 cupsaccept "$PRINTER_NAME"
 
-# Keep the same printer identity (UUID) across restarts and updates, so
-# phones see the same printer instead of adding a duplicate each time.
-UUID_FILE=/data/printer-uuid
-SAVED_UUID="$(grep -o 'urn:uuid:[0-9a-f-]*' "$UUID_FILE" 2>/dev/null | head -n1)"
-# Stop CUPS so it writes printers.conf to disk, then edit/read it safely.
-pkill -x cupsd
-for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
-CURRENT_UUID="$(grep -o 'urn:uuid:[0-9a-f-]*' /etc/cups/printers.conf | head -n1)"
-if [ -n "$SAVED_UUID" ]; then
-  sed -i "s|^UUID .*|UUID ${SAVED_UUID}|" /etc/cups/printers.conf
-  log "Printer identity: ${SAVED_UUID}"
-elif [ -n "$CURRENT_UUID" ]; then
-  echo "$CURRENT_UUID" > "$UUID_FILE"
-  log "Saved printer identity: ${CURRENT_UUID}"
-else
-  log "Could not read the printer identity; phones may see a new printer after updates."
+# ---------- 5. AirPrint front end (what iPhones, iPads and Macs see) ----------
+mkdir -p /run/canon-airprint /data/ippeve-spool
+echo "$PRINTER_NAME" > /run/canon-airprint/queue
+echo "${PAPER_SIZES%%,*}" > /run/canon-airprint/default_size
+/make_attrs.sh "$PAPER_SIZES" > /run/canon-airprint/attrs.conf || {
+  log "Could not build the paper list for '$PAPER_SIZES'."; sleep infinity; }
+
+IPPEVE="$(command -v ippeveprinter || ls /usr/sbin/ippeveprinter /usr/bin/ippeveprinter 2>/dev/null | head -n1)"
+if [ -z "$IPPEVE" ]; then
+  log "ippeveprinter is missing from this image; AirPrint can't start."
+  sleep infinity
 fi
-/usr/sbin/cupsd
+
+AIRPRINT_PORT="$(opt airprint_port)"; AIRPRINT_PORT="${AIRPRINT_PORT:-8631}"
+MAKE="$(opt printer_make)"; MAKE="${MAKE:-Canon}"
+MODEL="$(opt printer_model)"; MODEL="${MODEL:-$PRINTER_DESC}"
+
+start_airprint() {
+  "$IPPEVE" \
+    -p "$AIRPRINT_PORT" \
+    -n canon-airprint.local \
+    -M "$MAKE" -m "$MODEL" \
+    -l "$PRINTER_LOC" \
+    -s 18,0 \
+    -f application/pdf,image/jpeg,image/png,image/pwg-raster,image/urf \
+    -a /run/canon-airprint/attrs.conf \
+    -c /print_job.sh \
+    -d /data/ippeve-spool \
+    -r _print,_universal \
+    "$PRINTER_DESC" 2>&1 | sed -u 's/^/[airprint] /' &
+}
+start_airprint
 sleep 3
+if pgrep -x ippeveprinter >/dev/null; then
+  log "Ready. '$PRINTER_DESC' is shared as an AirPrint printer on port ${AIRPRINT_PORT}."
+else
+  log "The AirPrint front end did not start; see the [airprint] lines above."
+fi
+log "Status page: http://<home-assistant-ip>:${AIRPRINT_PORT}/   CUPS engine: http://<home-assistant-ip>:631"
 
-log "Ready. '$PRINTER_DESC' is shared as an AirPrint printer."
-log "CUPS web page: http://<home-assistant-ip>:631"
-
-# Show exactly what iPhones are told about paper.
+# Show exactly what iPhones are told about paper, and who else shares the printer.
 (
   sleep 5
   mkdir -p /share/canon
-  ipptool -tv "ipp://localhost/printers/${PRINTER_NAME}" get-printer-attributes.test \
+  ipptool -tv "ipp://localhost:${AIRPRINT_PORT}/ipp/print" get-printer-attributes.test \
     > /share/canon/ipp-attributes.txt 2>&1
-  grep -E '^\s+media-(ready|default|supported|col-ready|source-supported) ' /share/canon/ipp-attributes.txt \
-    | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-700
-  # The network announcement iPhones see first (TXT record).
-  # Other computers sharing the same printer can confuse phones; list them.
+  grep -E '^\s+(media-(ready|default|supported|source-supported)|urf-supported|printer-uuid) ' \
+      /share/canon/ipp-attributes.txt \
+    | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-500
+  grep -c 'media-col-ready' /share/canon/ipp-attributes.txt >/dev/null \
+    && log "advertised: media-col-ready is present (iPhones read loaded paper from it)"
   avahi-browse -rtp _ipp._tcp 2>/dev/null | grep '^=' | grep -v 'canon-airprint.local' \
     | awk -F';' '{print $4 " (" $8 ")"}' | sed 's/\\032/ /g; s/\\064/@/g; s/\\\././g' | sort -u \
-    | sed 's/^/[canon-airprint] Also shared on the network: /'
+    | sed 's/^/[canon-airprint] Also shared on the network (may confuse phones): /'
 ) &
 
-# ---------- 5. Printer status sensors for Home Assistant ----------
+# ---------- 6. Printer status sensors for Home Assistant ----------
 if [ "$(opt status_sensors)" != "false" ]; then
   SENSOR_SLUG="$(echo "$PRINTER_NAME" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '_')"
   log "Publishing printer status to Home Assistant as sensor.${SENSOR_SLUG}_*"
   /status.sh "$PRINTER_IP" "$PRINTER_DESC" "$SENSOR_SLUG" 60 &
 fi
 
-# ---------- 6. Stay running; restart if CUPS dies ----------
-while pgrep -x cupsd >/dev/null; do sleep 30; done
+# ---------- 7. Stay running; restart pieces that stop ----------
+while pgrep -x cupsd >/dev/null; do
+  if ! pgrep -x ippeveprinter >/dev/null; then
+    log "AirPrint front end stopped; restarting it."
+    start_airprint
+  fi
+  sleep 30
+done
 log "CUPS stopped; exiting so Home Assistant restarts the add-on."
 exit 1
