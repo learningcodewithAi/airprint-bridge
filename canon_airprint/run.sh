@@ -76,6 +76,10 @@ if [ "$(opt debug_logging)" = "true" ]; then
   log "Detailed CUPS logging is ON."
 fi
 
+# Don't let CUPS read tray contents from the printer over SNMP: the printer
+# reports A4/A5 and iPhones then only offer those sizes.
+printf 'Address @LOCAL\nCommunity disabled-by-canon-airprint\n' > /etc/cups/snmp.conf
+
 # Canon's installer starts its own CUPS; stop it so ours starts cleanly.
 pkill -x cupsd 2>/dev/null || true
 sleep 2
@@ -119,7 +123,7 @@ log "Using driver model: $PPD"
 
 lpadmin -x "$PRINTER_NAME" 2>/dev/null || true
 lpadmin -p "$PRINTER_NAME" \
-  -v "socket://${PRINTER_IP}:9100?snmp=false" \
+  -v "socket://${PRINTER_IP}:9100" \
   -m "$PPD" \
   -D "$PRINTER_DESC" \
   -L "$PRINTER_LOC" \
