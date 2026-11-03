@@ -29,6 +29,8 @@ download it again.
 | `printer_description` | The name phones show in the printer list. |
 | `printer_location` | Optional location shown under the name. |
 | `driver_url` | Canon's download link for the UFRII LT Linux driver. |
+| `paper_sizes` | Paper sizes offered to phones, first one is the default (default `Letter,Legal`). Keeps iPhones from picking e.g. A5 for photos. |
+| `debug_logging` | Detailed CUPS job logs in the Log tab, for troubleshooting. |
 
 ## Troubleshooting
 

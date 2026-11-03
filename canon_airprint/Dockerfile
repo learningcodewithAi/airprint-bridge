@@ -17,6 +17,7 @@ RUN apt-get update \
 
 COPY cupsd.conf /etc/cups/cupsd.conf
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
+COPY trim_ppd.awk /trim_ppd.awk
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 

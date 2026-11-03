@@ -59,19 +59,11 @@ log "Installing: ${DEBS[*]##*/}"
 dpkg -i --force-depends "${DEBS[@]}" >/dev/null 2>&1 || log "dpkg reported warnings (usually fine)."
 
 # Diagnostics: what does Canon's package want, and what's missing?
-for d in "${DEBS[@]}"; do
-  log "Package $(dpkg-deb -f "$d" Package) depends on: $(dpkg-deb -f "$d" Depends)"
-done
 for f in /usr/lib/cups/filter/rastertosfp /usr/lib/cups/filter/*ufr2* /usr/bin/cnpk* /usr/lib*/libcanon* /usr/lib/x86_64-linux-gnu/libcanon*; do
   [ -e "$f" ] || continue
   MISSING="$(ldd "$f" 2>/dev/null | grep 'not found' | awk '{print $1}' | tr '\n' ' ')"
-  if [ -n "$MISSING" ]; then
-    log "MISSING libraries for $f: $MISSING"
-  else
-    log "OK: $f"
-  fi
+  [ -n "$MISSING" ] && log "MISSING libraries for $f: $MISSING"
 done
-apt-get check 2>&1 | sed 's/^/[canon-airprint] apt: /' | head -n 20
 
 # Keep CUPS's TLS certificate across restarts/updates, so iPhones don't
 # show a "different printer" security warning each time.
@@ -135,6 +127,21 @@ lpadmin -p "$PRINTER_NAME" \
   -o media=na_letter_8.5x11in \
   -o PageSize=Letter \
   -E
+# Offer only the paper sizes actually in the tray, so iPhones don't pick
+# something like A5 for photos and leave the printer waiting for paper.
+PAPER_SIZES="$(opt paper_sizes)"
+PAPER_SIZES="${PAPER_SIZES:-Letter,Legal}"
+PPD_FILE="/etc/cups/ppd/${PRINTER_NAME}.ppd"
+if [ -f "$PPD_FILE" ]; then
+  awk -v KEEP="$PAPER_SIZES" -f /trim_ppd.awk "$PPD_FILE" > /tmp/trimmed.ppd
+  if grep -q "^\*PageSize ${PAPER_SIZES%%,*}[/:]" /tmp/trimmed.ppd; then
+    lpadmin -p "$PRINTER_NAME" -P /tmp/trimmed.ppd
+    log "Paper sizes offered: $PAPER_SIZES"
+  else
+    log "Paper size '${PAPER_SIZES%%,*}' not in the driver; keeping all sizes."
+  fi
+fi
+
 lpadmin -d "$PRINTER_NAME"
 cupsenable "$PRINTER_NAME"
 cupsaccept "$PRINTER_NAME"
