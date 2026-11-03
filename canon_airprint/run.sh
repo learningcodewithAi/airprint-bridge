@@ -177,7 +177,6 @@ AIRPRINT_PORT="$(opt airprint_port)"; AIRPRINT_PORT="${AIRPRINT_PORT:-8631}"
 start_airprint() {
   "$IPPEVE" "${VERBOSE[@]}" \
     -p "$AIRPRINT_PORT" \
-    -n canon-airprint.local \
     -l "$PRINTER_LOC" \
     -a /run/canon-airprint/attrs.conf \
     -c /print_job.sh \
