@@ -1,0 +1,30 @@
+name: Canon AirPrint
+version: "0.1.0"
+slug: canon_airprint
+description: Shares a Canon UFRII LT printer (like the LBP6030w) as an AirPrint printer for iPhones and Macs.
+url: https://github.com/learningcodewithAi/ha-airprint
+arch:
+  - amd64
+init: false
+startup: services
+boot: auto
+host_network: true
+host_dbus: false
+ports:
+  631/tcp: 631
+ports_description:
+  631/tcp: CUPS web interface and IPP printing
+map:
+  - share:rw
+options:
+  printer_ip: "192.168.7.27"
+  printer_name: "Canon_LBP6030w"
+  printer_description: "Canon LBP6030w"
+  printer_location: "Home"
+  driver_url: ""
+schema:
+  printer_ip: str
+  printer_name: match(^[A-Za-z0-9_-]+$)
+  printer_description: str
+  printer_location: str
+  driver_url: str?
