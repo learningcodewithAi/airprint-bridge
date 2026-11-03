@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         cups cups-client cups-bsd cups-filters cups-ipp-utils \
-        avahi-daemon libnss-mdns dbus \
+        avahi-daemon avahi-utils libnss-mdns dbus \
         ghostscript poppler-utils \
         libxml2 libjbig0 libglib2.0-0 libgtk2.0-0 libcups2 libcupsimage2 \
         curl ca-certificates jq tar gzip procps iproute2 gawk snmp \

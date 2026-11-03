@@ -195,9 +195,15 @@ log "CUPS web page: http://<home-assistant-ip>:631"
 # Show exactly what iPhones are told about paper.
 (
   sleep 5
-  ipptool -tv "ipp://localhost/printers/${PRINTER_NAME}" get-printer-attributes.test 2>/dev/null \
-    | grep -E '^\s+(media-(ready|default|supported|col-ready)|urf-supported|document-format-supported) ' \
-    | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-400
+  mkdir -p /share/canon
+  ipptool -tv "ipp://localhost/printers/${PRINTER_NAME}" get-printer-attributes.test \
+    > /share/canon/ipp-attributes.txt 2>&1
+  grep -E 'media|source|pwg|urf|PageSize|page-size|printer-input-tray' /share/canon/ipp-attributes.txt \
+    | grep -v -E '^\s*(document-format|operations)' \
+    | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-700
+  # The network announcement iPhones see first (TXT record).
+  avahi-browse -rtp _ipp._tcp 2>/dev/null | grep '^=' | head -n 3 \
+    | sed 's/^/[canon-airprint] announced: /' | cut -c1-900
 ) &
 
 # ---------- 5. Printer status sensors for Home Assistant ----------
