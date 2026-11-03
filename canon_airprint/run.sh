@@ -119,7 +119,7 @@ log "Using driver model: $PPD"
 
 lpadmin -x "$PRINTER_NAME" 2>/dev/null || true
 lpadmin -p "$PRINTER_NAME" \
-  -v "socket://${PRINTER_IP}:9100" \
+  -v "socket://${PRINTER_IP}:9100?snmp=false" \
   -m "$PPD" \
   -D "$PRINTER_DESC" \
   -L "$PRINTER_LOC" \
@@ -142,12 +142,36 @@ if [ -f "$PPD_FILE" ]; then
   fi
 fi
 
+# Tell phones which paper is loaded (they show this list, not the full one).
+READY=""
+for s in ${PAPER_SIZES//,/ }; do
+  case "$s" in
+    Letter) READY="${READY}na_letter_8.5x11in," ;;
+    Legal)  READY="${READY}na_legal_8.5x14in," ;;
+    A4)     READY="${READY}iso_a4_210x297mm," ;;
+    A5)     READY="${READY}iso_a5_148x210mm," ;;
+  esac
+done
+READY="${READY%,}"
+if [ -n "$READY" ]; then
+  lpadmin -p "$PRINTER_NAME" -o "media-ready=${READY}" -o "media-default=${READY%%,*}" \
+    || log "Could not set loaded paper list."
+fi
+
 lpadmin -d "$PRINTER_NAME"
 cupsenable "$PRINTER_NAME"
 cupsaccept "$PRINTER_NAME"
 
 log "Ready. '$PRINTER_DESC' is shared as an AirPrint printer."
 log "CUPS web page: http://<home-assistant-ip>:631"
+
+# Show exactly what iPhones are told about paper.
+(
+  sleep 5
+  ipptool -tv "ipp://localhost/printers/${PRINTER_NAME}" get-printer-attributes.test 2>/dev/null \
+    | grep -E '^\s+(media-(ready|default|supported|col-ready)|urf-supported|document-format-supported) ' \
+    | sed 's/^ */[canon-airprint] advertised: /' | cut -c1-400
+) &
 
 # ---------- 5. Stay running; restart if CUPS dies ----------
 while pgrep -x cupsd >/dev/null; do sleep 30; done

@@ -1,5 +1,5 @@
 name: Canon AirPrint
-version: "0.1.3"
+version: "0.1.4"
 slug: canon_airprint
 description: Shares a Canon UFRII LT printer (like the LBP6030w) as an AirPrint printer for iPhones and Macs.
 url: https://github.com/learningcodewithAi/ha-airprint
