@@ -58,6 +58,32 @@ fi
 log "Installing: ${DEBS[*]##*/}"
 dpkg -i --force-depends "${DEBS[@]}" >/dev/null 2>&1 || log "dpkg reported warnings (usually fine)."
 
+# Diagnostics: what does Canon's package want, and what's missing?
+for d in "${DEBS[@]}"; do
+  log "Package $(dpkg-deb -f "$d" Package) depends on: $(dpkg-deb -f "$d" Depends)"
+done
+for f in /usr/lib/cups/filter/rastertosfp /usr/lib/cups/filter/*ufr2* /usr/bin/cnpk* /usr/lib*/libcanon* /usr/lib/x86_64-linux-gnu/libcanon*; do
+  [ -e "$f" ] || continue
+  MISSING="$(ldd "$f" 2>/dev/null | grep 'not found' | awk '{print $1}' | tr '\n' ' ')"
+  if [ -n "$MISSING" ]; then
+    log "MISSING libraries for $f: $MISSING"
+  else
+    log "OK: $f"
+  fi
+done
+apt-get check 2>&1 | sed 's/^/[canon-airprint] apt: /' | head -n 20
+
+# Keep CUPS's TLS certificate across restarts/updates, so iPhones don't
+# show a "different printer" security warning each time.
+mkdir -p /data/cups-ssl
+rm -rf /etc/cups/ssl && ln -s /data/cups-ssl /etc/cups/ssl
+
+# Optional detailed logging of print jobs.
+if [ "$(opt debug_logging)" = "true" ]; then
+  sed -i 's/^LogLevel .*/LogLevel debug/' /etc/cups/cupsd.conf
+  log "Detailed CUPS logging is ON."
+fi
+
 # Canon's installer starts its own CUPS; stop it so ours starts cleanly.
 pkill -x cupsd 2>/dev/null || true
 sleep 2

@@ -1,5 +1,5 @@
 name: Canon AirPrint
-version: "0.1.1"
+version: "0.1.2"
 slug: canon_airprint
 description: Shares a Canon UFRII LT printer (like the LBP6030w) as an AirPrint printer for iPhones and Macs.
 url: https://github.com/learningcodewithAi/ha-airprint
@@ -22,9 +22,11 @@ options:
   printer_description: "Canon LBP6030w"
   printer_location: "Home"
   driver_url: ""
+  debug_logging: false
 schema:
   printer_ip: str
   printer_name: match(^[A-Za-z0-9_-]+$)
   printer_description: str
   printer_location: str
   driver_url: str?
+  debug_logging: bool?
