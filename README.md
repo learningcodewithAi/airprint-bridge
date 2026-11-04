@@ -1,7 +1,7 @@
 # AirPrint Bridge for Home Assistant
 
 > **Beta.** Tested on one printer so far (see [Tested printers](#tested-printers)).
-> If you try it, please [report how it went](https://github.com/learningcodewithAi/ha-airprint/issues/new?template=printer-report.yml), good or bad.
+> If you try it, please [report how it went](https://github.com/learningcodewithAi/airprint-bridge/issues/new?template=printer-report.yml), good or bad.
 
 Print from your iPhone, iPad or Mac to a printer that doesn't support
 AirPrint, with no app, no PDF tricks, and no computer left on.
@@ -42,11 +42,11 @@ into the Home Assistant machine by USB doesn't need either.
 
 ## Install
 
-[![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FlearningcodewithAi%2Fha-airprint)
+[![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FlearningcodewithAi%2Fairprint-bridge)
 
 1. Click the button above, or in Home Assistant go to **Settings → Apps →
    App Store** (Add-on Store in older versions), menu (⋮) → **Repositories**,
-   and add `https://github.com/learningcodewithAi/ha-airprint`.
+   and add `https://github.com/learningcodewithAi/airprint-bridge`.
 2. Install **AirPrint Bridge**. It's built on your machine, so the first
    install takes a few minutes.
 3. **Start it.** It looks for your printer, picks a driver and sets it up.
@@ -121,7 +121,7 @@ Printers that already support AirPrint don't need this.
 | Canon imageCLASS LBP6030w | Canon UFRII LT V5.10 (`driver_url`) | Wi-Fi (socket) | Intel Mac mini (amd64) | ✅ Works | @learningcodewithAi |
 
 Tried it with another printer? Please
-[fill in a printer report](https://github.com/learningcodewithAi/ha-airprint/issues/new?template=printer-report.yml),
+[fill in a printer report](https://github.com/learningcodewithAi/airprint-bridge/issues/new?template=printer-report.yml),
 whether it worked or not, and it'll be added here.
 
 ## Notes
