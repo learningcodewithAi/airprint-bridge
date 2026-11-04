@@ -1,7 +1,7 @@
 name: AirPrint Bridge
 version: "1.1.0"
 slug: airprint_bridge
-description: Turn almost any printer (network or USB) into an AirPrint printer for iPhones, iPads and Macs, with status sensors.
+description: (Beta) Turn almost any printer (network or USB) into an AirPrint printer for iPhones, iPads and Macs, with status sensors.
 url: https://github.com/learningcodewithAi/ha-airprint
 arch:
   - amd64

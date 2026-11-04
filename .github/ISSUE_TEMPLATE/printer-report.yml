@@ -1,0 +1,82 @@
+name: Printer report
+description: Tell us how AirPrint Bridge worked with your printer, good or bad.
+title: "[Printer] Brand and model"
+labels: ["printer report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Reports like this are how the "Tested printers" table grows.
+        Please remove anything private (passwords, your own name) before submitting.
+  - type: input
+    id: printer
+    attributes:
+      label: Printer brand and model
+      placeholder: Brother HL-L2350DW
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Did it work?
+      options:
+        - "Yes, prints from iPhone/iPad/Mac"
+        - "Prints, but with problems (describe below)"
+        - "Shows up on the phone, but doesn't print"
+        - "Doesn't show up on the phone"
+        - "The add-on didn't install or start"
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How is the printer connected?
+      options:
+        - Wi-Fi
+        - Ethernet
+        - USB to the Home Assistant machine
+    validations:
+      required: true
+  - type: dropdown
+    id: machine
+    attributes:
+      label: What runs Home Assistant?
+      options:
+        - Home Assistant Green
+        - Home Assistant Yellow
+        - Raspberry Pi
+        - Intel/AMD computer (mini PC, NUC, old laptop, Mac mini…)
+        - Virtual machine
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: setup
+    attributes:
+      label: Did auto-detect find the printer and driver?
+      options:
+        - "Yes, I left the address and model empty and it set itself up"
+        - "Partly, I had to fill in some settings"
+        - "No, I set everything by hand"
+  - type: input
+    id: version
+    attributes:
+      label: AirPrint Bridge version
+      placeholder: 1.1.0
+  - type: textarea
+    id: config
+    attributes:
+      label: Your settings
+      description: Configuration tab → ⋮ → Edit in YAML, then paste here.
+      render: yaml
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The add-on's Log tab, from "Starting AirPrint Bridge" to "Ready" or the error.
+      render: shell
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: Paper size shown on the phone, sensors working, what went wrong, tips for others with this printer.

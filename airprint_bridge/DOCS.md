@@ -1,5 +1,8 @@
 # AirPrint Bridge
 
+> **Beta.** If you try it with a new printer, please send a
+> [printer report](https://github.com/learningcodewithAi/ha-airprint/issues/new?template=printer-report.yml).
+
 AirPrint Bridge makes a printer that doesn't support AirPrint show up on
 every iPhone, iPad and Mac on your network, like a native AirPrint printer.
 It runs on your Home Assistant machine, so it's always on. The printer stays
