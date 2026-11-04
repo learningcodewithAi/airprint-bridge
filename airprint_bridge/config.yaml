@@ -1,0 +1,50 @@
+name: AirPrint Bridge
+version: "1.0.0"
+slug: airprint_bridge
+description: Turn almost any printer (network or USB) into an AirPrint printer for iPhones, iPads and Macs, with status sensors.
+url: https://github.com/learningcodewithAi/ha-airprint
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: services
+boot: auto
+host_network: true
+host_dbus: false
+homeassistant_api: true
+usb: true
+ports:
+  631/tcp: 631
+  8631/tcp: 8631
+ports_description:
+  631/tcp: CUPS engine web interface (admin)
+  8631/tcp: AirPrint printer (what phones connect to) and its status page
+map:
+  - share:rw
+options:
+  printer_name: "My Printer"
+  printer_uri: ""
+  printer_location: ""
+  driver_url: ""
+  driver_packages: []
+  driver_match: ""
+  paper_sizes: "Letter,Legal"
+  color: false
+  duplex: false
+  status_sensors: true
+  airprint_port: 8631
+  debug_logging: false
+schema:
+  printer_name: str
+  printer_uri: str
+  printer_location: str?
+  driver_url: str?
+  driver_packages:
+    - str
+  driver_match: str?
+  paper_sizes: str?
+  color: bool?
+  duplex: bool?
+  status_sensors: bool?
+  airprint_port: port?
+  debug_logging: bool?
