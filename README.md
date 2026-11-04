@@ -13,6 +13,16 @@ It also gives Home Assistant sensors for the printer: **status**, **alerts**
 count**, so you can get a phone notification when the printer needs
 attention.
 
+![How AirPrint Bridge works: iPhone, iPad or Mac prints over AirPrint to Home Assistant, which runs the printer driver and sends the job to your printer over the network or USB](docs/images/how-it-works.png)
+
+### What you'll see on your iPhone
+
+Your printer shows up in the normal Print screen, with the paper that's
+actually in the tray (here a Canon LBP6030w, which has no AirPrint of its
+own):
+
+<img src="docs/images/iphone-print-options.png" alt="iPhone print options showing Canon LBP6030w with US Letter paper" width="320">
+
 ## Install
 
 [![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FlearningcodewithAi%2Fha-airprint)
@@ -85,14 +95,6 @@ Tried it with another printer? Please
 [open an issue](https://github.com/learningcodewithAi/ha-airprint/issues) with
 the model, the options you used and whether it worked, and it'll be added
 here.
-
-## How it works
-
-```
-iPhone / iPad / Mac ──AirPrint──▶ AirPrint Bridge (Home Assistant)
-                                   ├─ ippeveprinter: AirPrint front end
-                                   └─ CUPS + printer driver ──▶ printer
-```
 
 ## Notes
 
