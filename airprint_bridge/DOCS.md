@@ -25,8 +25,14 @@ low), toner level and page count.
    **Log** tab until it says `Ready`.
 4. On your phone: Share → Print → Printer, and pick your printer.
 
-Give the printer a fixed (reserved) address in your router, so it doesn't
-change.
+**Network printers only** (USB printers don't need these):
+
+- **Required: give the printer a fixed IP address.** Reserve its address in
+  your router ("DHCP reservation" or "reserved IP"). If the address changes,
+  printing and the sensors stop working.
+- **Recommended: turn off the printer's sleep (or auto power-off).** A
+  sleeping printer can show as offline and trigger false alerts. Printing
+  still works with sleep on.
 
 ## Options
 

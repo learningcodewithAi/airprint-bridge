@@ -23,6 +23,16 @@ own):
 
 <img src="docs/images/iphone-print-options.png" alt="iPhone print options showing Canon LBP6030w with US Letter paper" width="320">
 
+## Before you start
+
+These apply to **network printers** (Wi-Fi or Ethernet). A printer plugged
+into the Home Assistant machine by USB doesn't need either.
+
+| | |
+|---|---|
+| **Required: a fixed IP address** | The bridge and its sensors find the printer by its address. If your router gives the printer a new address, printing and the sensors quietly stop working. Reserve the printer's address in your router (often called a "DHCP reservation" or "reserved IP"); your router's help pages show how. |
+| **Recommended: turn off sleep** | A sleeping printer can miss status checks and show as offline, which can trigger false alerts. Turning off sleep (or auto power-off) in the printer's settings keeps the sensors reliable, at the cost of a little more power. Printing itself still works if you leave sleep on. |
+
 ## Install
 
 [![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FlearningcodewithAi%2Fha-airprint)
