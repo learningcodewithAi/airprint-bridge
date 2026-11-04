@@ -15,13 +15,56 @@ attention.
 
 ## Install
 
-1. In Home Assistant: **Settings → Apps → App Store** (called Add-on Store in
-   older versions).
-2. Menu (⋮) → **Repositories** → add
-   `https://github.com/learningcodewithAi/ha-airprint`
-3. Install **AirPrint Bridge** and follow its **Documentation** tab.
+[![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FlearningcodewithAi%2Fha-airprint)
 
-Works on Intel/AMD machines and on ARM (Raspberry Pi, Home Assistant Green).
+1. Click the button above, or in Home Assistant go to **Settings → Apps →
+   App Store** (Add-on Store in older versions), menu (⋮) → **Repositories**,
+   and add `https://github.com/learningcodewithAi/ha-airprint`.
+2. Install **AirPrint Bridge**. It's built on your machine, so the first
+   install takes a few minutes.
+3. In its **Configuration** tab, set at least `printer_name`, `printer_uri`, a
+   driver (`driver_url` or `driver_packages`) and `driver_match`. The
+   **Documentation** tab explains each one and has a driver table by brand.
+4. Start it and wait for `Ready` in the **Log** tab.
+5. On your iPhone: Share → Print → pick your printer. Tap **Continue** if a
+   one-time security warning appears.
+
+Requires Home Assistant OS or a Supervised install (apps aren't available on
+Container or Core installs). Works on Intel/AMD machines and on ARM
+(Raspberry Pi, Home Assistant Green). Phones must be on the same network.
+
+### Example configurations
+
+Canon laser with Canon's Linux driver:
+
+```yaml
+printer_name: Office Canon
+printer_uri: 192.168.1.50
+driver_url: https://gdlp01.c-wss.com/gds/0/0100005950/11/linux-UFRIILT-drv-v510-m17n.tar.gz
+driver_match: LBP6030
+paper_sizes: Letter,Legal
+```
+
+Brother laser with a free Debian driver:
+
+```yaml
+printer_name: Brother Laser
+printer_uri: 192.168.1.60
+driver_packages:
+  - printer-driver-brlaser
+driver_match: HL-L2350
+paper_sizes: A4
+```
+
+USB printer plugged into the Home Assistant machine:
+
+```yaml
+printer_name: Kitchen Printer
+printer_uri: usb
+driver_packages:
+  - hplip
+driver_match: DeskJet 2700
+```
 
 ## Supported printers
 
