@@ -19,7 +19,7 @@ RUN apt-get update \
 COPY cupsd.conf /etc/cups/cupsd.conf
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 COPY trim_ppd.awk /trim_ppd.awk
-COPY run.sh install_driver.sh status.sh print_job.sh make_attrs.sh /
-RUN chmod a+x /run.sh /install_driver.sh /status.sh /print_job.sh /make_attrs.sh
+COPY run.sh install_driver.sh discover.sh notify.sh status.sh print_job.sh make_attrs.sh /
+RUN chmod a+x /run.sh /install_driver.sh /discover.sh /notify.sh /status.sh /print_job.sh /make_attrs.sh
 
 CMD [ "/run.sh" ]

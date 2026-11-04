@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+- Setup finds your printer: leave the address empty and the add-on searches
+  your network (SNMP) and USB. With one printer it sets itself up; with
+  several it lists them.
+- Detects the printer's model and picks the matching driver; installs the
+  free driver for Brother, HP, Epson, Samsung and Xerox printers.
+- Home Assistant notifications when the printer is ready or needs something
+  (pick a printer, Canon driver link, no printer found).
+- Plain-English names and help text in the Configuration tab.
+- The printer name defaults to the printer's model.
+
 ## 1.0.0
 
 First public release as **AirPrint Bridge** (formerly the Canon-only

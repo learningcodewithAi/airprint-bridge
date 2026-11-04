@@ -1,5 +1,5 @@
 name: AirPrint Bridge
-version: "1.0.0"
+version: "1.1.0"
 slug: airprint_bridge
 description: Turn almost any printer (network or USB) into an AirPrint printer for iPhones, iPads and Macs, with status sensors.
 url: https://github.com/learningcodewithAi/ha-airprint
@@ -22,7 +22,7 @@ ports_description:
 map:
   - share:rw
 options:
-  printer_name: "My Printer"
+  printer_name: ""
   printer_uri: ""
   printer_location: ""
   driver_url: ""
@@ -35,8 +35,8 @@ options:
   airprint_port: 8631
   debug_logging: false
 schema:
-  printer_name: str
-  printer_uri: str
+  printer_name: str?
+  printer_uri: str?
   printer_location: str?
   driver_url: str?
   driver_packages:

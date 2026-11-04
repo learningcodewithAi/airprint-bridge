@@ -1,0 +1,59 @@
+configuration:
+  printer_name:
+    name: Printer name
+    description: >-
+      The name your iPhone, iPad and Mac show. Leave empty to use the
+      printer's model name.
+  printer_uri:
+    name: Printer address
+    description: >-
+      Leave empty to find your printer automatically. Or type its IP address
+      (like 192.168.1.50), "usb" for a printer plugged into this machine, or a
+      full address like socket://, lpd:// or ipp://.
+  printer_location:
+    name: Location
+    description: Optional, shown under the printer's name, like "Office".
+  driver_url:
+    name: Driver download link
+    description: >-
+      Only for manufacturer drivers, like Canon's. Paste the download link of
+      the printer's Linux driver (.deb, .tar.gz or .zip). Leave empty for
+      most printers.
+  driver_packages:
+    name: Driver packages
+    description: >-
+      Free Linux driver packages to install, like printer-driver-brlaser for
+      Brother. Leave empty to choose automatically for Brother, HP, Epson,
+      Samsung and Xerox.
+  driver_match:
+    name: Printer model
+    description: >-
+      Leave empty to detect it. Otherwise, part of the model name as the
+      driver lists it, like LBP6030. Use "everywhere" for printers that
+      support driverless printing.
+  paper_sizes:
+    name: Paper in the tray
+    description: >-
+      Letter, Legal, A4 or A5, separated by commas. The first one is the
+      default.
+  color:
+    name: Color printer
+    description: Turn on if your printer prints in color.
+  duplex:
+    name: Two-sided printing
+    description: Turn on if your printer prints on both sides automatically.
+  status_sensors:
+    name: Printer sensors
+    description: >-
+      Adds sensors to Home Assistant for the printer's status, alerts (no
+      paper, jam, toner low), toner level and page count. Network printers
+      only.
+  airprint_port:
+    name: AirPrint port
+    description: The network port for the AirPrint printer. Leave as 8631 unless something else uses it.
+  debug_logging:
+    name: Detailed logs
+    description: Turn on only when troubleshooting a problem.
+network:
+  631/tcp: Print engine admin page (CUPS)
+  8631/tcp: AirPrint printer and its status page

@@ -16,7 +16,15 @@ DROP=/share/airprint_bridge
 mkdir -p "$CACHE" "$DROP" /data/apt-archives
 
 # ---------- 1. Debian driver packages ----------
-mapfile -t PKGS < <(jq -r '.driver_packages[]? // empty' /data/options.json)
+# "install_driver.sh --packages a b" installs just those (used by auto-detect).
+# Otherwise: driver_packages from the options, plus any package auto-detect
+# picked on an earlier start (/data/auto-packages).
+if [ "${1:-}" = "--packages" ]; then
+  shift; PKGS=("$@"); ONLY_PACKAGES=1
+else
+  mapfile -t PKGS < <(jq -r '.driver_packages[]? // empty' /data/options.json; cat /data/auto-packages 2>/dev/null)
+  ONLY_PACKAGES=0
+fi
 if [ "${#PKGS[@]}" -gt 0 ]; then
   log "Installing driver packages: ${PKGS[*]}"
   # Keep downloaded packages in /data so restarts don't download them again.
@@ -28,8 +36,10 @@ if [ "${#PKGS[@]}" -gt 0 ]; then
   else
     log "Could not install: ${PKGS[*]}. Check the names (see the documentation)."
     tail -n 5 /tmp/apt.log | sed 's/^/[airprint-bridge]   /'
+    [ "$ONLY_PACKAGES" = "1" ] && exit 1
   fi
 fi
+[ "$ONLY_PACKAGES" = "1" ] && exit 0
 
 # ---------- 2. Vendor driver archive or package ----------
 DRIVER_URL="$(opt driver_url)"

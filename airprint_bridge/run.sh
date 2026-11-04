@@ -7,10 +7,11 @@ set -uo pipefail
 OPTIONS=/data/options.json
 opt() { jq -r --arg k "$1" '.[$k] // empty' "$OPTIONS"; }
 log() { echo "[airprint-bridge] $*"; }
+notify() { /notify.sh "$1" "$2"; }
 wait_forever() { log "$*"; log "Fix the Configuration tab, then restart the add-on."; sleep infinity; }
 
 QUEUE=bridge
-PRINTER_NAME="$(opt printer_name)";       PRINTER_NAME="${PRINTER_NAME:-My Printer}"
+PRINTER_NAME="$(opt printer_name)"
 PRINTER_URI="$(opt printer_uri)"
 PRINTER_LOC="$(opt printer_location)"
 DRIVER_MATCH="$(opt driver_match)"
@@ -20,7 +21,7 @@ DUPLEX="$(opt duplex)";                   DUPLEX="${DUPLEX:-false}"
 AIRPRINT_PORT="$(opt airprint_port)";     AIRPRINT_PORT="${AIRPRINT_PORT:-8631}"
 DEBUG="$(opt debug_logging)";             DEBUG="${DEBUG:-false}"
 
-log "Starting AirPrint Bridge for '$PRINTER_NAME' on $(dpkg --print-architecture)."
+log "Starting AirPrint Bridge on $(dpkg --print-architecture)."
 
 # ---------- 1. Drivers ----------
 /install_driver.sh
@@ -50,31 +51,121 @@ tail -n0 -F /var/log/cups/error_log 2>/dev/null | grep --line-buffered -v 'Color
   | sed -u 's/^/[cups] /' &
 
 # ---------- 3. Where is the printer? ----------
+restart_cups() {
+  pkill -x cupsd; for _ in $(seq 1 20); do pgrep -x cupsd >/dev/null || break; sleep 0.5; done
+  /usr/sbin/cupsd; sleep 3
+}
+MODEL_NAME=""   # the printer's own make and model, when we can find it
+AUTO_FOUND=0
+
 case "$PRINTER_URI" in
   "")
-    wait_forever "Set printer_uri, e.g. socket://192.168.1.50:9100 for a network printer or 'usb' for USB." ;;
+    log "No printer address set; looking for printers on your network and USB…"
+    mapfile -t FOUND < <(/discover.sh)
+    case "${#FOUND[@]}" in
+      0)
+        notify "AirPrint Bridge: no printer found" \
+          "Make sure the printer is on and connected, then restart the add-on. Or type its address in the add-on's Configuration tab."
+        wait_forever "No printers found. Make sure it's on, or set the printer address." ;;
+      1)
+        PRINTER_URI="$(cut -f1 <<<"${FOUND[0]}")"
+        MODEL_NAME="$(cut -f2 <<<"${FOUND[0]}")"
+        AUTO_FOUND=1
+        log "Found one printer: $MODEL_NAME at $PRINTER_URI" ;;
+      *)
+        log "Found ${#FOUND[@]} printers. Copy one address into the Printer address setting:"
+        LIST=""
+        for f in "${FOUND[@]}"; do
+          log "  $(cut -f2 <<<"$f"): $(cut -f1 <<<"$f")"
+          LIST="${LIST}- $(cut -f2 <<<"$f"): \`$(cut -f1 <<<"$f")\`"$'\n'
+        done
+        notify "AirPrint Bridge: pick your printer" \
+          "Found more than one printer. Copy the address of the one you want into the add-on's **Printer address** setting, then restart it:"$'\n\n'"$LIST"
+        wait_forever "Set the printer address to one of the printers above." ;;
+    esac ;;
   usb|USB|auto)
-    PRINTER_URI="$(lpinfo --timeout 15 -v 2>/dev/null | awk '$2 ~ /^usb:\/\// {print $2; exit}')"
-    [ -n "$PRINTER_URI" ] || wait_forever "No USB printer found. Is it plugged in and turned on?"
-    log "Found USB printer: $PRINTER_URI" ;;
+    FOUND_USB="$(/discover.sh | awk -F'\t' '$1 ~ /^usb:\/\// {print; exit}')"
+    [ -n "$FOUND_USB" ] || wait_forever "No USB printer found. Is it plugged in and turned on?"
+    PRINTER_URI="$(cut -f1 <<<"$FOUND_USB")"; MODEL_NAME="$(cut -f2 <<<"$FOUND_USB")"
+    log "Found USB printer: $MODEL_NAME" ;;
   *://*) ;;
   *)
     # A bare address means a network printer on the standard raw port.
     PRINTER_URI="socket://${PRINTER_URI}:9100" ;;
 esac
 
-# ---------- 4. Driver model for this printer ----------
+# Network printer given by address: ask it for its model (standard SNMP).
+HOST="$(echo "$PRINTER_URI" | sed -nE 's#^(socket|ipp|ipps|lpd|http|https)://([^/:@]+@)?([^/:?]+).*#\3#p')"
+if [ -z "$MODEL_NAME" ] && [ -n "$HOST" ]; then
+  MODEL_NAME="$(snmpget -v1 -c public -t 2 -r 1 -Oqv "$HOST" 1.3.6.1.2.1.25.3.2.1.3.1 2>/dev/null | tr -d '"')"
+fi
+[ -n "$MODEL_NAME" ] && log "Printer model: $MODEL_NAME"
+if [ -z "$PRINTER_NAME" ]; then
+  PRINTER_NAME="${MODEL_NAME:-My Printer}"
+  PRINTER_NAME="${PRINTER_NAME%%/*}"   # "Canon LBP6030w/6018w" -> "Canon LBP6030w"
+fi
+
+# ---------- 4. Driver for this printer ----------
+# Finds an installed driver for a model name by trying its model numbers,
+# e.g. "Canon LBP6030w/6018w" -> LBP6030w, LBP6030, 6018w, 6018.
+find_ppd() {
+  local tok cand ppd
+  for tok in $(echo "$1" | tr '/,()_' '     '); do
+    [[ "$tok" =~ [0-9] ]] || continue
+    for cand in "$tok" "$(echo "$tok" | sed -E 's/[A-Za-z]+$//')"; do
+      [ "${#cand}" -ge 3 ] || continue
+      ppd="$(lpinfo -m 2>/dev/null | grep -v -E '^(drv:///sample|everywhere)' | grep -iF -- "$cand" | head -n1 | cut -d' ' -f1)"
+      [ -n "$ppd" ] && { echo "$ppd"; return 0; }
+    done
+  done
+  return 1
+}
+# Free Debian driver for a brand, or nothing.
+brand_package() {
+  case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
+    *brother*)                 echo printer-driver-brlaser ;;
+    *hewlett*|*" hp "*|hp\ *)  echo printer-driver-hpcups ;;
+    *epson*)                   echo printer-driver-escpr ;;
+    *samsung*|*xerox*)         echo printer-driver-splix ;;
+  esac
+}
+
+PPD=""
 if [ "$DRIVER_MATCH" = "everywhere" ] || [ "$DRIVER_MATCH" = "driverless" ]; then
   MODEL_ARG=(-m everywhere)
   log "Using driverless printing (the printer must support IPP Everywhere)."
 else
-  [ -n "$DRIVER_MATCH" ] || wait_forever "Set driver_match to part of your printer's model name (e.g. LBP6030, HL-L2350)."
-  PPD="$(lpinfo -m 2>/dev/null | grep -iF -- "$DRIVER_MATCH" | grep -v '^drv:///sample' | head -n1 | cut -d' ' -f1)"
+  if [ -n "$DRIVER_MATCH" ]; then
+    PPD="$(lpinfo -m 2>/dev/null | grep -iF -- "$DRIVER_MATCH" | grep -v '^drv:///sample' | head -n1 | cut -d' ' -f1)"
+  elif [ -n "$MODEL_NAME" ]; then
+    PPD="$(find_ppd "$MODEL_NAME")"
+    # No driver yet: for brands with a free driver, install it and try again.
+    if [ -z "$PPD" ]; then
+      PKG="$(brand_package "$MODEL_NAME")"
+      if [ -n "$PKG" ] && ! grep -qx "$PKG" /data/auto-packages 2>/dev/null; then
+        log "Installing the free driver for this printer: $PKG"
+        if /install_driver.sh --packages "$PKG"; then
+          echo "$PKG" >> /data/auto-packages
+          restart_cups
+          PPD="$(find_ppd "$MODEL_NAME")"
+        fi
+      fi
+    fi
+  fi
+
   if [ -z "$PPD" ]; then
-    log "No installed driver matches '$DRIVER_MATCH'. Installed models (first 80):"
+    WHAT="${DRIVER_MATCH:-${MODEL_NAME:-your printer}}"
+    case "$(echo "$MODEL_NAME" | tr '[:upper:]' '[:lower:]')" in
+      *canon*)
+        HELP="Canon printers need Canon's Linux driver. On Canon's support site, find your model's \"UFRII LT\" or \"UFR II\" Linux driver (or \"IJ Printer Driver\" for PIXMA), start the download, copy its link, and paste it into **Driver download link**." ;;
+      *)
+        HELP="Install a driver: set **Driver packages** (see the documentation's driver table) or **Driver download link**, or type the model as the driver lists it in **Printer model** (the add-on's log lists the installed models)." ;;
+    esac
+    log "No installed driver matches '$WHAT'. Installed models (first 80):"
     lpinfo -m 2>/dev/null | grep -v -E '^(drv:///sample|everywhere|lsb/usr/cupsfilters)' | head -n 80 \
       | sed 's/^/[airprint-bridge]   /'
-    wait_forever "Pick a model from the list above for driver_match, or install a driver."
+    notify "AirPrint Bridge: driver needed" "Found ${MODEL_NAME:-your printer}, but no driver for it yet. $HELP Then restart the add-on."
+    wait_forever "No driver for '$WHAT' yet. $HELP"
   fi
   MODEL_ARG=(-m "$PPD")
   log "Driver: $(lpinfo -m 2>/dev/null | grep -F -- "$PPD " | head -n1 | cut -d' ' -f2-)"
@@ -133,6 +224,14 @@ start_airprint
 sleep 3
 if pgrep -x ippeveprinter >/dev/null; then
   log "Ready. '$PRINTER_NAME' is available to iPhones, iPads and Macs."
+  if [ "$AUTO_FOUND" = "1" ] && [ ! -f /data/setup-notified ]; then
+    MSG="Found **${MODEL_NAME}** and set it up as **${PRINTER_NAME}**. Print from your iPhone, iPad or Mac: Share → Print."
+    if [ -n "$HOST" ]; then
+      MSG="$MSG"$'\n\n'"The printer is at **${HOST}**. Reserve this address in your router (\"DHCP reservation\") so it doesn't change, or printing will stop working."
+    fi
+    notify "AirPrint Bridge is ready" "$MSG"
+    touch /data/setup-notified
+  fi
 else
   log "The AirPrint front end did not start; see the [airprint] lines above."
 fi

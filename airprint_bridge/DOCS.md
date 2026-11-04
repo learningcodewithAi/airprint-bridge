@@ -18,12 +18,25 @@ low), toner level and page count.
 
 ## Setup
 
-1. Find your printer's **address** (from its network settings page or your
-   router), or plug it into the Home Assistant machine by USB.
-2. Pick a **driver** (see below).
-3. Fill in the **Configuration** tab, start the add-on, and watch the
-   **Log** tab until it says `Ready`.
-4. On your phone: Share → Print → Printer, and pick your printer.
+For most printers, setup is: **install, start, print.**
+
+1. Turn the printer on. For a USB printer, plug it into the Home Assistant
+   machine.
+2. Start the add-on and open the **Log** tab. With the **Printer address**
+   left empty, the add-on looks for printers on your network and USB:
+   - **One printer found:** it's set up by itself. For Brother, HP, Epson,
+     Samsung and Xerox, the right free driver is installed automatically.
+     A notification (bell icon) tells you when it's ready.
+   - **More than one found:** a notification lists them. Copy the address of
+     yours into **Printer address** and restart the add-on.
+   - **Canon:** Canon's driver can't be downloaded automatically. The
+     notification explains how to paste Canon's download link into **Driver
+     download link**.
+3. On your phone: Share → Print → Printer, and pick your printer. Tap
+     **Continue** if a one-time security warning appears.
+
+If your printer isn't found (some printers don't answer the search), type its
+address into **Printer address**.
 
 **Network printers only** (USB printers don't need these):
 
@@ -38,12 +51,12 @@ low), toner level and page count.
 
 | Option | What it does |
 |---|---|
-| `printer_name` | The name phones show, e.g. `Office Laser`. |
-| `printer_uri` | Where the printer is. An address like `192.168.1.50` (raw port 9100), a full URI (`socket://…:9100`, `lpd://…/queue`, `ipp://…/ipp/print`), or `usb` for the first USB printer. |
+| `printer_name` | The name phones show, e.g. `Office Laser`. Empty: the printer's model name. |
+| `printer_uri` | Where the printer is. Empty: found automatically. Or an address like `192.168.1.50` (raw port 9100), a full URI (`socket://…:9100`, `lpd://…/queue`, `ipp://…/ipp/print`), or `usb` for the first USB printer. |
 | `printer_location` | Optional text shown under the name, e.g. `Office`. |
 | `driver_url` | Link to the manufacturer's Linux driver (`.deb`, or `.tar.gz`/`.zip` containing `.deb` files). |
-| `driver_packages` | Debian driver packages to install, e.g. `printer-driver-brlaser`. |
-| `driver_match` | Part of your model's name as the driver lists it, e.g. `LBP6030`. Use `everywhere` for driverless printing. |
+| `driver_packages` | Debian driver packages to install, e.g. `printer-driver-brlaser`. Empty: chosen automatically for Brother, HP, Epson, Samsung and Xerox. |
+| `driver_match` | Empty: detected from the printer. Or part of the model name as the driver lists it, e.g. `LBP6030`. Use `everywhere` for driverless printing. |
 | `paper_sizes` | Paper in your tray. The first one is the default: `Letter`, `Legal`, `A4`, `A5` (e.g. `Letter,Legal` or `A4`). |
 | `color` | Turn on for color printers. |
 | `duplex` | Turn on if the printer prints on both sides automatically. |

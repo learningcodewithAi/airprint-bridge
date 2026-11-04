@@ -42,11 +42,11 @@ into the Home Assistant machine by USB doesn't need either.
    and add `https://github.com/learningcodewithAi/ha-airprint`.
 2. Install **AirPrint Bridge**. It's built on your machine, so the first
    install takes a few minutes.
-3. In its **Configuration** tab, set at least `printer_name`, `printer_uri`, a
-   driver (`driver_url` or `driver_packages`) and `driver_match`. The
-   **Documentation** tab explains each one and has a driver table by brand.
-4. Start it and wait for `Ready` in the **Log** tab.
-5. On your iPhone: Share → Print → pick your printer. Tap **Continue** if a
+3. **Start it.** It looks for your printer, picks a driver and sets it up.
+   A notification (bell icon) tells you when it's ready, or what it needs:
+   Canon printers need Canon's driver link, and if you have several
+   printers you pick one. The **Documentation** tab explains every setting.
+4. On your iPhone: Share → Print → pick your printer. Tap **Continue** if a
    one-time security warning appears.
 
 Requires Home Assistant OS or a Supervised install (apps aren't available on
@@ -54,6 +54,8 @@ Container or Core installs). Works on Intel/AMD machines and on ARM
 (Raspberry Pi, Home Assistant Green). Phones must be on the same network.
 
 ### Example configurations
+
+Most printers need no configuration. These show how to set things by hand.
 
 Canon laser with Canon's Linux driver:
 
