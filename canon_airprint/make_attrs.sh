@@ -9,7 +9,7 @@ set -uo pipefail
 SIZES="${1:-Letter}"
 MAKE_MODEL="${2:-Printer}"
 FIRST=""
-KW=(); COLS=()
+KW=(); COLS=(); SIZECOLS=()
 
 col() { # x y source
   printf '{\n    MEMBER collection media-size {\n      MEMBER integer x-dimension %s\n      MEMBER integer y-dimension %s\n    }\n    MEMBER integer media-bottom-margin 500\n    MEMBER integer media-left-margin 500\n    MEMBER integer media-right-margin 500\n    MEMBER integer media-top-margin 500\n    MEMBER keyword media-source "%s"\n    MEMBER keyword media-type "stationery"\n  }' "$1" "$2" "$3"
@@ -26,6 +26,7 @@ for s in ${SIZES//,/ }; do
   [ -z "$FIRST" ] && FIRST="$kw" && FX=$x && FY=$y
   KW+=("$kw")
   COLS+=("$(col "$x" "$y" auto)")
+  SIZECOLS+=("$(printf '{\n    MEMBER integer x-dimension %s\n    MEMBER integer y-dimension %s\n  }' "$x" "$y")")
 done
 
 [ -z "$FIRST" ] && { echo "No usable paper sizes in '$SIZES'" >&2; exit 1; }
@@ -64,6 +65,9 @@ ATTR integer media-right-margin-supported 500
 ATTR integer media-top-margin-supported 500
 ATTR collection media-col-default $(col "$FX" "$FY" auto)
 EOF
+# ippeveprinter checks a job's media-col size against media-size-supported.
+printf 'ATTR collection media-size-supported '
+first=1; for c in "${SIZECOLS[@]}"; do [ $first -eq 1 ] || printf ','; printf '%s' "$c"; first=0; done; echo
 printf 'ATTR collection media-col-ready '
 first=1; for c in "${COLS[@]}"; do [ $first -eq 1 ] || printf ','; printf '%s' "$c"; first=0; done; echo
 printf 'ATTR collection media-col-database '

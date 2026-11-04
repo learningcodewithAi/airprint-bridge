@@ -1,5 +1,5 @@
 name: Canon AirPrint
-version: "0.3.2"
+version: "0.3.3"
 slug: canon_airprint
 description: Shares a Canon UFRII LT / UFR II printer as a real AirPrint printer for iPhones, iPads and Macs, with status sensors.
 url: https://github.com/learningcodewithAi/ha-airprint
