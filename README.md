@@ -1,6 +1,6 @@
 # AirPrint Bridge for Home Assistant
 
-> **Beta.** Tested on one printer so far (see [Tested printers](#tested-printers)).
+> **Beta.** Tested on two printers so far (see [Tested printers](#tested-printers)).
 > If you try it, please [report how it went](https://github.com/learningcodewithAi/airprint-bridge/issues/new?template=printer-report.yml), good or bad.
 
 Print from your iPhone, iPad or Mac to a printer that doesn't support
@@ -119,6 +119,7 @@ Printers that already support AirPrint don't need this.
 | Printer | Driver | Connection | Machine | Status | Confirmed by |
 |---|---|---|---|---|---|
 | Canon imageCLASS LBP6030w | Canon UFRII LT V5.10 (`driver_url`) | Wi-Fi (socket) | Intel Mac mini (amd64) | ✅ Works | @learningcodewithAi |
+| Canon imageCLASS MF4890dw | Canon UFRII V6.40 (`driver_url`), duplex on | Wi-Fi (socket) | Virtual machine | ✅ Works | @bbene ([#1](https://github.com/learningcodewithAi/airprint-bridge/issues/1)) |
 
 Tried it with another printer? Please
 [fill in a printer report](https://github.com/learningcodewithAi/airprint-bridge/issues/new?template=printer-report.yml),
