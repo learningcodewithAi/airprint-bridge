@@ -60,6 +60,16 @@ Requires Home Assistant OS or a Supervised install (apps aren't available on
 Container or Core installs). Works on Intel/AMD machines and on ARM
 (Raspberry Pi, Home Assistant Green). Phones must be on the same network.
 
+### What setup looks like
+
+The Configuration tab explains every setting in plain English:
+
+<img src="docs/images/configuration.png" alt="AirPrint Bridge Configuration tab with printer name, address, driver link and model" width="640">
+
+And the Log tab ends with "Ready" when the printer is available:
+
+<img src="docs/images/log-ready.png" alt="AirPrint Bridge log ending with Ready" width="640">
+
 ### Example configurations
 
 Most printers need no configuration. These show how to set things by hand.
