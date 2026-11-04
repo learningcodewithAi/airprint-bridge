@@ -26,6 +26,10 @@ own):
 
 <img src="docs/images/iphone-print-options.png" alt="iPhone print options showing Canon LBP6030w with US Letter paper" width="320">
 
+And Home Assistant tells you when it has found and set up your printer:
+
+<img src="docs/images/ready-notification.png" alt="Home Assistant notification: AirPrint Bridge is ready, found Canon LBP6030/6040/6018L at 192.168.7.27" width="480">
+
 ## Before you start
 
 These apply to **network printers** (Wi-Fi or Ethernet). A printer plugged
