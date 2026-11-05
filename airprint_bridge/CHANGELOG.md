@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1
+
+- AirPrint detection now only trusts the printer's AirPrint announcement, so
+  printers without AirPrint (like the Epson ET-2860) are never switched to
+  sensors only by mistake.
+- If another device already uses the printer's name on your network, the
+  bridge shows up as "<name> AirPrint", so phones don't see two look-alikes.
+
 ## 1.2.0
 
 - Printers that already support AirPrint are detected. Instead of adding a

@@ -107,8 +107,8 @@ if [ -z "$PRINTER_NAME" ]; then
 fi
 
 # ---------- 3b. Does the printer already do AirPrint? ----------
-# AirPrint printers announce Apple's print format (URF) over Bonjour, and
-# report it when asked over IPP. Those printers don't need the bridge, and a
+# AirPrint printers announce Apple's print format (URF) over Bonjour. Only
+# that counts: many printers answer IPP without supporting AirPrint. Those printers don't need the bridge, and a
 # second copy would show up as a duplicate on phones.
 has_airprint() {
   local host="$1" t
@@ -118,10 +118,6 @@ has_airprint() {
        '$1=="=" && $8==h && $10 ~ /URF=/ {f=1} END {exit !f}'; then
     return 0
   fi
-  for t in "ipp://$host/ipp/print" "ipp://$host:631/ipp/print"; do
-    timeout 8 ipptool -tv "$t" get-printer-attributes.test 2>/dev/null \
-      | grep -q 'urf-supported' && return 0
-  done
   return 1
 }
 
@@ -249,6 +245,15 @@ IPPEVE="$(command -v ippeveprinter || ls /usr/sbin/ippeveprinter /usr/bin/ippeve
 mkdir -p /data/ssl /data/spool
 [ "$DEBUG" = "true" ] && VERBOSE=(-vv) || VERBOSE=()
 
+# If the printer (or anything else) already announces this name, phones would
+# see two look-alikes. Use a clearly different name for the bridge.
+AIR_NAME="$PRINTER_NAME"
+if timeout 8 avahi-browse -atp 2>/dev/null | awk -F';' '{print $4}' \
+     | sed 's/\\032/ /g; s/\\\././g' | grep -qxF "$PRINTER_NAME"; then
+  AIR_NAME="$PRINTER_NAME AirPrint"
+  log "Another device already uses the name '$PRINTER_NAME', so phones will see this one as '$AIR_NAME'."
+fi
+
 start_airprint() {
   # -K keeps the TLS keys in /data, so phones don't warn about a "different
   # printer" after restarts and updates.
@@ -260,14 +265,14 @@ start_airprint() {
     -c /print_job.sh \
     -d /data/spool \
     -r _print,_universal \
-    "$PRINTER_NAME" 2>&1 \
+    "$AIR_NAME" 2>&1 \
     | grep --line-buffered -v -E 'Ignored Avahi state|IPv6 listener' \
     | sed -u 's/^/[airprint] /' &
 }
 start_airprint
 sleep 3
 if pgrep -x ippeveprinter >/dev/null; then
-  log "Ready. '$PRINTER_NAME' is available to iPhones, iPads and Macs."
+  log "Ready. '$AIR_NAME' is available to iPhones, iPads and Macs."
   if [ "$AUTO_FOUND" = "1" ] && [ ! -f /data/setup-notified ]; then
     MSG="Found **${MODEL_NAME}** and set it up as **${PRINTER_NAME}**. Print from your iPhone, iPad or Mac: Share → Print."
     if [ -n "$HOST" ]; then
