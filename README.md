@@ -112,7 +112,9 @@ driver: a manufacturer's Linux driver (Canon, Brother and others), one of
 Debian's free drivers (HP, Epson, Brother, Samsung/Xerox, Gutenprint), or
 driverless IPP Everywhere.
 
-Printers that already support AirPrint don't need this.
+Printers that already support AirPrint don't need the bridge. The add-on
+notices and runs **sensors only**, so you still get status and ink/paper
+alerts without a duplicate printer on your phone.
 
 ### Tested printers
 

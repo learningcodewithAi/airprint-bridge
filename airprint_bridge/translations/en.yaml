@@ -1,4 +1,10 @@
 configuration:
+  mode:
+    name: Mode
+    description: >-
+      auto: share the printer as AirPrint, or run sensors only if the printer
+      already supports AirPrint. bridge: always share it (bridge + sensors).
+      sensors: sensors only, never share it.
   printer_name:
     name: Printer name
     description: >-

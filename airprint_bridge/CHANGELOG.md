@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Printers that already support AirPrint are detected. Instead of adding a
+  duplicate printer to your phone, the add-on runs **sensors only** (status,
+  paper and ink alerts, page count) and tells you so.
+- New **Mode** setting: auto (default), bridge (always share) or sensors
+  (sensors only).
+
 ## 1.1.0
 
 - Setup finds your printer: leave the address empty and the add-on searches

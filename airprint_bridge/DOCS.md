@@ -50,10 +50,16 @@ address into **Printer address**.
   sleeping printer can show as offline and trigger false alerts. Printing
   still works with sleep on.
 
+**Printer already supports AirPrint?** The add-on notices, and instead of
+adding a duplicate printer to your phone it runs **sensors only**: status,
+paper and ink alerts, and page count. Set **Mode** to `bridge` to share it
+anyway.
+
 ## Options
 
 | Option | What it does |
 |---|---|
+| `mode` | `auto` (default): bridge, or sensors only if the printer already supports AirPrint. `bridge`: always share the printer. `sensors`: sensors only. |
 | `printer_name` | The name phones show, e.g. `Office Laser`. Empty: the printer's model name. |
 | `printer_uri` | Where the printer is. Empty: found automatically. Or an address like `192.168.1.50` (raw port 9100), a full URI (`socket://…:9100`, `lpd://…/queue`, `ipp://…/ipp/print`), or `usb` for the first USB printer. |
 | `printer_location` | Optional text shown under the name, e.g. `Office`. |

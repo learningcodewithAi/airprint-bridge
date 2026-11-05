@@ -20,6 +20,7 @@ COLOR="$(opt color)";                     COLOR="${COLOR:-false}"
 DUPLEX="$(opt duplex)";                   DUPLEX="${DUPLEX:-false}"
 AIRPRINT_PORT="$(opt airprint_port)";     AIRPRINT_PORT="${AIRPRINT_PORT:-8631}"
 DEBUG="$(opt debug_logging)";             DEBUG="${DEBUG:-false}"
+MODE="$(opt mode)";                       MODE="${MODE:-auto}"
 
 log "Starting AirPrint Bridge on $(dpkg --print-architecture)."
 
@@ -103,6 +104,49 @@ fi
 if [ -z "$PRINTER_NAME" ]; then
   PRINTER_NAME="${MODEL_NAME:-My Printer}"
   PRINTER_NAME="${PRINTER_NAME%%/*}"   # "Canon LBP6030w/6018w" -> "Canon LBP6030w"
+fi
+
+# ---------- 3b. Does the printer already do AirPrint? ----------
+# AirPrint printers announce Apple's print format (URF) over Bonjour, and
+# report it when asked over IPP. Those printers don't need the bridge, and a
+# second copy would show up as a duplicate on phones.
+has_airprint() {
+  local host="$1" t
+  [ -n "$host" ] || return 1
+  sleep 2   # give Avahi a moment to hear announcements
+  if timeout 8 avahi-browse -rtp _ipp._tcp 2>/dev/null | awk -F';' -v h="$host" \
+       '$1=="=" && $8==h && $10 ~ /URF=/ {f=1} END {exit !f}'; then
+    return 0
+  fi
+  for t in "ipp://$host/ipp/print" "ipp://$host:631/ipp/print"; do
+    timeout 8 ipptool -tv "$t" get-printer-attributes.test 2>/dev/null \
+      | grep -q 'urf-supported' && return 0
+  done
+  return 1
+}
+
+if [ "$MODE" != "bridge" ] && has_airprint "$HOST"; then
+  if [ "$MODE" = "auto" ] || [ "$MODE" = "sensors" ]; then
+    log "Good news: ${MODEL_NAME:-this printer} already supports AirPrint, so phones can print to it directly."
+    log "Running sensors only. To run the bridge anyway, set Mode to \"Bridge + sensors\"."
+    if [ ! -f "/data/airprint-native-$HOST" ]; then
+      notify "Good news! Your printer already supports AirPrint" \
+        "**${MODEL_NAME:-Your printer}** can print from iPhones, iPads and Macs on its own, so AirPrint Bridge is running **sensors only**: status, paper and ink alerts, and page count."$'\n\n'"Want the bridge anyway? Set **Mode** to \"Bridge + sensors\" in the add-on's Configuration tab."
+      touch "/data/airprint-native-$HOST"
+    fi
+    SENSORS_ONLY=1
+  fi
+elif [ "$MODE" = "sensors" ]; then
+  log "Mode is \"Sensors only\": not sharing the printer, sensors only."
+  SENSORS_ONLY=1
+fi
+
+if [ "${SENSORS_ONLY:-0}" = "1" ]; then
+  [ -n "$HOST" ] || wait_forever "Sensors need a network printer, but this one is $PRINTER_URI."
+  [ "$(opt status_sensors)" != "false" ] || wait_forever "Status sensors are turned off, so there's nothing to do."
+  SLUG="$(echo "$PRINTER_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/_/g; s/^_+|_+$//g')"
+  log "Status sensors: sensor.${SLUG}_status, _alert, _toner, _pages"
+  exec /status.sh "$HOST" "$PRINTER_NAME" "$SLUG" 60
 fi
 
 # ---------- 4. Driver for this printer ----------
